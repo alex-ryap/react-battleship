@@ -1,0 +1,18 @@
+.btn {
+  cursor: pointer;
+  border: none;
+  padding: 10px 15px;
+  font-size: 20px;
+  color: #fff;
+  background: deepskyblue;
+  box-shadow: 4px 4px 8px 0px rgba(34, 60, 80, 0.2);
+  transition: all 0.3s ease-in-out;
+
+  &:not(:disabled):hover {
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    background-color: gray;
+  }
+}

@@ -13,7 +13,7 @@ export type FieldItem = {
 
 interface IProps {
   field: Array<FieldItem>;
-  numberOfPlayer: number;
+  playerName: string;
   visible: boolean;
   action: Function;
 }
@@ -34,7 +34,7 @@ export class Field extends Component<IProps, {}> {
             />
           );
         })}
-        <div className="field__name">Игрок {this.props.numberOfPlayer}</div>
+        <div className="field__name">{this.props.playerName}</div>
       </div>
     );
   }

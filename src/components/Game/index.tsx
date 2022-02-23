@@ -2,18 +2,8 @@ import { Component, ReactNode } from 'react';
 import { Button } from '../Button';
 import { Field, FieldItem } from '../Field';
 import { Settings } from '../Settings';
+import { Player, Shot } from '../../utils/types';
 import './style.scss';
-
-type Player = {
-  field: Array<FieldItem>;
-  isDeployOfShip: boolean;
-  countAliveShips: number;
-};
-
-type Shot = {
-  x: string;
-  y: string;
-};
 
 interface IProps {
   children?: ReactNode;
@@ -22,16 +12,15 @@ interface IProps {
 interface IState {
   player1: Player;
   player2: Player;
-  shotResult?: string; // результат выстрела
-  isFault: boolean; // промах
+  shotResult: string;
+  isFail: boolean;
   isWin: boolean;
-  isStarted: boolean; // игра началась
-  isReadyFields: boolean; // поля заполнены(готовы к игре)
-  isReadyPlayer: boolean; // игроки готовы?
-  isTurnOfPlayer1: boolean; // ход первого игрока?
-  setShot: boolean; // выбрана клетка для атаки
-  lastShot?: Shot; // координаты выбранной для выстрела клетки
-  logs: Array<string>;
+  isStarted: boolean;
+  isReadyFields: boolean;
+  isReadyPlayer: boolean;
+  isTurnOfPlayer1: boolean;
+  isMakeShot: boolean;
+  lastShot?: Shot;
 }
 
 export class Game extends Component<IProps, IState> {
@@ -39,47 +28,54 @@ export class Game extends Component<IProps, IState> {
     super(props);
     this.state = {
       player1: {
+        name: 'Player1',
         field: [],
-        isDeployOfShip: false,
-        countAliveShips: 0,
+        isInstalledShips: false,
+        numberOfShips: 0,
       },
       player2: {
+        name: 'Player2',
         field: [],
-        isDeployOfShip: false,
-        countAliveShips: 0,
+        isInstalledShips: false,
+        numberOfShips: 0,
       },
+
       isWin: false,
-      isTurnOfPlayer1: true,
+      isFail: false,
+      isStarted: false,
+      isMakeShot: false,
       isReadyFields: false,
       isReadyPlayer: false,
-      isFault: false,
-      setShot: false,
-      isStarted: false,
+      isTurnOfPlayer1: true,
       shotResult:
         'Расставьте свои корабли(один клик по клетке - поставить, повторный клик убрать)',
-      logs: [],
     };
-    this.shot = this.shot.bind(this);
   }
 
+  /**
+   * монтирование компонента
+   */
   componentDidMount() {
     this.newGame();
   }
 
+  /**
+   * новая игра
+   */
   newGame = () => {
-    console.log('New game');
-
-    // формируем пустые поля для обоих игроков
+    // формируем пустые поля для всех игроков
     // и устанавливаем флаг, что расстановка кораблей не завершена
     const player1: Player = {
+      name: 'Игрок 1',
       field: this.createField(),
-      isDeployOfShip: false,
-      countAliveShips: 0,
+      isInstalledShips: false,
+      numberOfShips: 0,
     };
     const player2: Player = {
+      name: 'Игрок 2',
       field: this.createField(),
-      isDeployOfShip: false,
-      countAliveShips: 0,
+      isInstalledShips: false,
+      numberOfShips: 0,
     };
 
     // обнуляем стейт
@@ -88,58 +84,16 @@ export class Game extends Component<IProps, IState> {
       player2: player2,
       isStarted: false,
       isReadyFields: false,
-      setShot: false,
+      isMakeShot: false,
       lastShot: { x: '', y: '' },
       isReadyPlayer: false,
       isTurnOfPlayer1: true,
       isWin: false,
-      isFault: false,
+      isFail: false,
       shotResult:
         'Расставьте свои корабли(один клик по клетке - поставить, повторный клик убрать)',
     });
   };
-
-  shot(x: string, y: string) {
-    console.log(`shot on [${x}, ${y}]`);
-
-    // определяем на поле какого игрока будет выполнен выстрел
-    const player = this.state.isTurnOfPlayer1
-      ? this.state.player2
-      : this.state.player1;
-
-    let shooting = this.state.setShot;
-    let lastShot = this.state.lastShot;
-
-    if (!this.state.setShot) {
-      player.field.map((square) => {
-        if (square.x === x && square.y === y && !square.content) {
-          square.shot = !square.shot;
-          shooting = true;
-          lastShot = { x, y };
-        }
-        return square;
-      });
-    } else if (this.state.lastShot?.x === x && this.state.lastShot?.y === y) {
-      player.field.map((square) => {
-        if (square.x === x && square.y === y && !square.content)
-          square.shot = !square.shot;
-        return square;
-      });
-      shooting = false;
-    }
-
-    this.state.isTurnOfPlayer1
-      ? this.setState({
-          player2: player,
-          setShot: shooting,
-          lastShot: lastShot,
-        })
-      : this.setState({
-          player1: player,
-          setShot: shooting,
-          lastShot: lastShot,
-        });
-  }
 
   /**
    * Создание поля для игрока
@@ -167,68 +121,43 @@ export class Game extends Component<IProps, IState> {
   }
 
   /**
-   * Устанавливает/убирает корабль в выбранной клетке
-   * @param x - координата Х корабля
-   * @param y - координата У корабля
+   * Метод жизненного цикла компонента
+   * @param nextProps обновленные пропсы
+   * @param nextState обновленное состояние
+   * @returns обновляем состояние или нет
    */
-  addShip = (x: string, y: string) => {
-    console.log(`[${x}, ${y}]`);
-
-    // определяем на поле какого из игроков был поставлен корабль
-    const player = this.state.isTurnOfPlayer1
-      ? { ...this.state.player1 }
-      : { ...this.state.player2 };
-
-    player.field.map((square) => {
-      if (square.x === x && square.y === y) {
-        // находим выбранную клетку и устанавливаем в ней корабль
-        // или убираем, если корабль там уже стоит
-        if (player.countAliveShips === 8 && square.ship) {
-          square.ship = false;
-          player.countAliveShips--;
-          player.isDeployOfShip = false;
-        } else if (player.countAliveShips < 8) {
-          player.countAliveShips = square.ship
-            ? player.countAliveShips - 1
-            : player.countAliveShips + 1;
-          square.ship = !square.ship;
-        }
-      }
-      return square;
-    });
-
-    this.state.isTurnOfPlayer1
-      ? this.setState({ player1: player })
-      : this.setState({ player2: player });
-  };
-
   shouldComponentUpdate(nextProps: IProps, nextState: IState) {
-    // мониторим количество расставленных кораблей игроков
-    if (nextState.player1.countAliveShips >= 8)
-      nextState.player1.isDeployOfShip = true;
+    // отслеживаем количество расставленных кораблей игроков
+    if (nextState.player1.numberOfShips >= 8)
+      nextState.player1.isInstalledShips = true;
 
-    if (nextState.player2.countAliveShips >= 8)
-      nextState.player2.isDeployOfShip = true;
+    if (nextState.player2.numberOfShips >= 8)
+      nextState.player2.isInstalledShips = true;
 
+    // отслеживаем победителя
     if (
       nextState.isStarted &&
-      (nextState.player1.countAliveShips === 0 ||
-        nextState.player2.countAliveShips === 0)
+      (nextState.player1.numberOfShips === 0 ||
+        nextState.player2.numberOfShips === 0)
     ) {
       nextState.isWin = true;
       nextState.shotResult = 'Победил!';
     }
 
+    // отключаем отображение сообщения о расстановке кораблей
     if (nextState.isReadyFields && !nextState.isStarted)
       nextState.shotResult = '';
 
     return true;
   }
 
+  /**
+   * меняет игрока
+   */
   nextPlayer() {
     // если оба поля игроков готовы, сообщаем об этом
-    // либо меняем игрока дав возможность расставить корабли
-    this.state.player1.isDeployOfShip && this.state.player2.isDeployOfShip
+    // либо меняем игрока, дав возможность другому расставить корабли
+    this.state.player1.isInstalledShips && this.state.player2.isInstalledShips
       ? this.setState({
           isReadyFields: true,
           isTurnOfPlayer1: !this.state.isTurnOfPlayer1,
@@ -236,14 +165,32 @@ export class Game extends Component<IProps, IState> {
       : this.setState({ isTurnOfPlayer1: !this.state.isTurnOfPlayer1 });
   }
 
+  /**
+   * начинает игру
+   */
   startGame() {
-    // начинает игру
     this.setState({
       isStarted: true,
       isReadyPlayer: true,
     });
   }
 
+  /**
+   * завершает ход игрока
+   */
+  endTurn() {
+    this.setState({
+      isFail: false,
+      isReadyPlayer: false,
+      isTurnOfPlayer1: !this.state.isTurnOfPlayer1,
+      isMakeShot: false,
+      shotResult: '',
+    });
+  }
+
+  /**
+   * подтверждение выстрела
+   */
   confirmShot() {
     // определяем какой игрок делает выстрел
     const player = this.state.isTurnOfPlayer1
@@ -251,7 +198,7 @@ export class Game extends Component<IProps, IState> {
       : this.state.player1;
 
     let result = '';
-    let isFault = this.state.isFault;
+    let isFail = this.state.isFail;
 
     player.field.map((square) => {
       if (
@@ -261,12 +208,12 @@ export class Game extends Component<IProps, IState> {
         // если на выбранной клетке стоит корабль
         if (square.ship) {
           square.content = 'X';
-          player.countAliveShips--;
+          player.numberOfShips--;
           result = 'Попал!';
         } else {
           square.content = '·';
           result = 'Мимо :(';
-          isFault = true;
+          isFail = true;
         }
       }
       return square;
@@ -276,28 +223,92 @@ export class Game extends Component<IProps, IState> {
       this.setState({
         player2: player,
         shotResult: result,
-        isFault,
-        setShot: false,
+        isFail,
+        isMakeShot: false,
       });
     } else {
       this.setState({
         player1: player,
         shotResult: result,
-        isFault,
-        setShot: false,
+        isFail,
+        isMakeShot: false,
       });
     }
   }
 
-  endTurn() {
-    this.setState({
-      isFault: false,
-      isReadyPlayer: false,
-      isTurnOfPlayer1: !this.state.isTurnOfPlayer1,
-      setShot: false,
-      shotResult: '',
-    });
-  }
+  /**
+   * Устанавливает/убирает корабль в выбранной клетке
+   * @param x - координата Х корабля
+   * @param y - координата У корабля
+   */
+  handlerClick = (x: string, y: string) => {
+    // определяем на поле какого из игроков был поставлен корабль
+    let player: Player;
+    let shooting = this.state.isMakeShot;
+    let lastShot = this.state.lastShot;
+
+    // если игра начата, то выполняем выстрел иначе ставим/убираем корабль
+    if (this.state.isStarted) {
+      player = this.state.isTurnOfPlayer1
+        ? { ...this.state.player2 }
+        : { ...this.state.player1 };
+      if (!this.state.isMakeShot) {
+        player.field.map((square) => {
+          if (square.x === x && square.y === y && !square.content) {
+            square.shot = !square.shot;
+            shooting = true;
+            lastShot = { x, y };
+          }
+          return square;
+        });
+      } else if (this.state.lastShot?.x === x && this.state.lastShot?.y === y) {
+        player.field.map((square) => {
+          if (square.x === x && square.y === y && !square.content)
+            square.shot = !square.shot;
+          return square;
+        });
+        shooting = false;
+      }
+      this.state.isTurnOfPlayer1
+        ? this.setState({
+            player2: player,
+            isMakeShot: shooting,
+            lastShot: lastShot,
+          })
+        : this.setState({
+            player1: player,
+            isMakeShot: shooting,
+            lastShot: lastShot,
+          });
+    } else {
+      player = this.state.isTurnOfPlayer1
+        ? { ...this.state.player1 }
+        : { ...this.state.player2 };
+      player.field.map((square) => {
+        if (square.x === x && square.y === y) {
+          // находим выбранную клетку и устанавливаем в ней корабль или убираем, если корабль там уже стоит
+          if (player.numberOfShips === 8 && square.ship) {
+            square.ship = false;
+            player.numberOfShips--;
+            player.isInstalledShips = false;
+          } else if (player.numberOfShips < 8) {
+            player.numberOfShips = square.ship
+              ? player.numberOfShips - 1
+              : player.numberOfShips + 1;
+            square.ship = !square.ship;
+          }
+        }
+        return square;
+      });
+      this.state.isTurnOfPlayer1
+        ? this.setState({
+            player1: player,
+          })
+        : this.setState({
+            player2: player,
+          });
+    }
+  };
 
   render(): ReactNode {
     return (
@@ -308,7 +319,11 @@ export class Game extends Component<IProps, IState> {
         </div>
         {/* Отображение информации о текущем игроке */}
         <Settings
-          numberPlayer={this.state.isTurnOfPlayer1 ? 1 : 2}
+          playerName={
+            this.state.isTurnOfPlayer1
+              ? this.state.player1.name
+              : this.state.player2.name
+          }
           shotResult={this.state.shotResult}
         >
           {!this.state.isReadyFields && (
@@ -317,8 +332,8 @@ export class Game extends Component<IProps, IState> {
               onClick={() => this.nextPlayer()}
               status={
                 this.state.isTurnOfPlayer1
-                  ? !this.state.player1.isDeployOfShip
-                  : !this.state.player2.isDeployOfShip
+                  ? !this.state.player1.isInstalledShips
+                  : !this.state.player2.isInstalledShips
               }
             />
           )}
@@ -326,18 +341,18 @@ export class Game extends Component<IProps, IState> {
             <Button
               text={'Начать ход'}
               onClick={() => this.startGame()}
-              status={!this.state.player1.isDeployOfShip}
+              status={!this.state.player1.isInstalledShips}
             />
           )}
 
           {this.state.isStarted &&
           !this.state.isWin &&
           this.state.isReadyPlayer &&
-          !this.state.isFault ? (
+          !this.state.isFail ? (
             <Button
               text="Атаковать"
               onClick={() => this.confirmShot()}
-              status={!this.state.setShot}
+              status={!this.state.isMakeShot}
             />
           ) : (
             ''
@@ -346,7 +361,7 @@ export class Game extends Component<IProps, IState> {
           {this.state.isStarted &&
           !this.state.isWin &&
           this.state.isReadyPlayer &&
-          this.state.isFault ? (
+          this.state.isFail ? (
             <Button
               text="Завершить ход"
               onClick={() => this.endTurn()}
@@ -357,7 +372,7 @@ export class Game extends Component<IProps, IState> {
           )}
         </Settings>
         <div className="game__field">
-          {!this.state.isReadyFields && !this.state.isStarted ? (
+          {!this.state.isReadyFields ? (
             <Field
               field={
                 this.state.isTurnOfPlayer1
@@ -365,8 +380,12 @@ export class Game extends Component<IProps, IState> {
                   : this.state.player2.field
               }
               visible={true}
-              action={this.addShip}
-              numberOfPlayer={this.state.isTurnOfPlayer1 ? 1 : 2}
+              action={this.handlerClick}
+              playerName={
+                this.state.isTurnOfPlayer1
+                  ? this.state.player1.name
+                  : this.state.player2.name
+              }
             />
           ) : (
             ''
@@ -381,7 +400,11 @@ export class Game extends Component<IProps, IState> {
                 }
                 visible={true}
                 action={() => ''}
-                numberOfPlayer={this.state.isTurnOfPlayer1 ? 1 : 2}
+                playerName={
+                  this.state.isTurnOfPlayer1
+                    ? this.state.player1.name
+                    : this.state.player2.name
+                }
               />
               <Field
                 field={
@@ -390,8 +413,12 @@ export class Game extends Component<IProps, IState> {
                     : this.state.player1.field
                 }
                 visible={false}
-                action={this.shot}
-                numberOfPlayer={this.state.isTurnOfPlayer1 ? 2 : 1}
+                action={this.handlerClick}
+                playerName={
+                  this.state.isTurnOfPlayer1
+                    ? this.state.player2.name
+                    : this.state.player1.name
+                }
               />
             </>
           ) : (

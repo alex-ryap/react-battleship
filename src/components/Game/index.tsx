@@ -156,7 +156,7 @@ export class Game extends Component<IProps, IState> {
    */
   nextPlayer() {
     // если оба поля игроков готовы, сообщаем об этом
-    // либо меняем игрока, дав возможность другому расставить корабли
+    // либо меняем игрока, дав возможность ходить другому
     this.state.player1.isInstalledShips && this.state.player2.isInstalledShips
       ? this.setState({
           isReadyFields: true,
@@ -198,6 +198,7 @@ export class Game extends Component<IProps, IState> {
       : this.state.player1;
 
     let result = '';
+    let isMakeShot = this.state.isMakeShot;
     let isFail = this.state.isFail;
 
     player.field.map((square) => {
@@ -210,6 +211,7 @@ export class Game extends Component<IProps, IState> {
           square.content = 'X';
           player.numberOfShips--;
           result = 'Попал!';
+          isMakeShot = false;
         } else {
           square.content = '·';
           result = 'Мимо :(';
@@ -224,14 +226,14 @@ export class Game extends Component<IProps, IState> {
         player2: player,
         shotResult: result,
         isFail,
-        isMakeShot: false,
+        isMakeShot,
       });
     } else {
       this.setState({
         player1: player,
         shotResult: result,
         isFail,
-        isMakeShot: false,
+        isMakeShot,
       });
     }
   }

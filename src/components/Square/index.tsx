@@ -8,11 +8,19 @@ interface IProps {
   ship: boolean;
   shot: boolean;
   visible: boolean;
-  addShip: Function;
+  action: Function;
 }
 
 export class Square extends Component<IProps, {}> {
   render(): ReactNode {
+    const squareClasses = ['field__square'];
+
+    if (this.props.ship && this.props.visible)
+      squareClasses.push('field__square-ship');
+    if (this.props.shot) {
+      squareClasses.push('field__square-shot');
+    }
+
     if (this.props.x === '0') {
       return (
         <div className={'field__square field__square-left'}>
@@ -28,12 +36,8 @@ export class Square extends Component<IProps, {}> {
     }
     return (
       <div
-        className={
-          this.props.ship && this.props.visible
-            ? 'field__square field__square-ship'
-            : 'field__square'
-        }
-        onClick={() => this.props.addShip(this.props.x, this.props.y)}
+        className={squareClasses.join(' ')}
+        onClick={() => this.props.action(this.props.x, this.props.y)}
       >
         {this.props.content}
       </div>

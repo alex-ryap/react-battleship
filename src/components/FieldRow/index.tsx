@@ -6,7 +6,7 @@ import './style.scss';
 interface Props {
   squares: Array<FieldItem>;
   visible: boolean;
-  addShip: Function;
+  action: Function;
 }
 
 export class FieldRow extends Component<Props, {}> {
@@ -23,7 +23,7 @@ export class FieldRow extends Component<Props, {}> {
               ship={square.ship}
               shot={square.shot}
               visible={this.props.visible}
-              addShip={this.props.addShip}
+              action={this.props.action}
             />
           );
         })}

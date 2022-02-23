@@ -5,6 +5,12 @@
   align-items: center;
   justify-content: space-evenly;
 
+  &__action {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+  }
+
   &__field {
     display: flex;
     gap: 50px;

@@ -4,6 +4,12 @@
   align-items: center;
   gap: 30px;
 }
+
+.game__text {
+  max-width: 400px;
+  text-align: center;
+}
+
 .game__buttons {
   display: flex;
   align-items: center;

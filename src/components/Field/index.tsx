@@ -1,18 +1,11 @@
 import { Component, ReactNode } from 'react';
 import { splitToRows } from '../../utils/commons';
+import { Square } from '../../utils/types';
 import { FieldRow } from '../FieldRow';
 import './style.scss';
 
-export type FieldItem = {
-  x: string;
-  y: string;
-  content: string;
-  ship: boolean;
-  shot: boolean;
-};
-
 interface IProps {
-  field: Array<FieldItem>;
+  field: Array<Square>;
   playerName: string;
   visible: boolean;
   action: Function;

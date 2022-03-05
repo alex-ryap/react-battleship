@@ -1,4 +1,4 @@
-.field__square {
+.field__cell {
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -12,7 +12,7 @@
   padding: 2px;
 
   &:hover {
-    background-color: #ccc;
+    background: #ccc;
   }
 
   &-top,
@@ -20,15 +20,17 @@
     border: none;
 
     &:hover {
-      background-color: #fff;
+      background: #fff;
     }
   }
 
-  &-ship {
-    background-color: cornflowerblue;
+  &-ship,
+  &-ship:hover {
+    background: cornflowerblue;
   }
 
-  &-shot {
-    background-color: lightcoral;
+  &-shot,
+  &-shot:hover {
+    background: lightcoral;
   }
 }

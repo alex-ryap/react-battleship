@@ -1,6 +1,6 @@
-import { FieldItem } from '../components/Field';
+import { Square } from './types';
 
-export const splitToRows = (arr: Array<FieldItem>): Array<Array<FieldItem>> => {
+export const splitToRows = (arr: Array<Square>): Array<Array<Square>> => {
   const subArrays = [];
 
   for (let i = 0; i < arr.length; ) {

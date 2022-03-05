@@ -1,18 +1,16 @@
 import { Component, ReactNode } from 'react';
 import { Button } from '../Button';
-import { Field, FieldItem } from '../Field';
-import { Settings } from '../Settings';
-import { Player, Shot } from '../../utils/types';
+import { Field } from '../Field';
+import { UserAction } from '../UserAction';
+import { Player, Shot, Square } from '../../utils/types';
 import './style.scss';
 
-interface IProps {
-  children?: ReactNode;
-}
+interface IProps {}
 
 interface IState {
   player1: Player;
   player2: Player;
-  shotResult: string;
+  actionInfo: string;
   isFail: boolean;
   isWin: boolean;
   isStarted: boolean;
@@ -23,7 +21,7 @@ interface IState {
   lastShot?: Shot;
 }
 
-export class Game extends Component<IProps, IState> {
+export class Game extends Component<{}, IState> {
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -47,7 +45,7 @@ export class Game extends Component<IProps, IState> {
       isReadyFields: false,
       isReadyPlayer: false,
       isTurnOfPlayer1: true,
-      shotResult:
+      actionInfo:
         'Расставьте свои корабли(один клик по клетке - поставить, повторный клик убрать)',
     };
   }
@@ -90,7 +88,7 @@ export class Game extends Component<IProps, IState> {
       isTurnOfPlayer1: true,
       isWin: false,
       isFail: false,
-      shotResult:
+      actionInfo:
         'Расставьте свои корабли(один клик по клетке - поставить, повторный клик убрать)',
     });
   };
@@ -99,19 +97,18 @@ export class Game extends Component<IProps, IState> {
    * Создание поля для игрока
    * @returns пустое поле игрока
    */
-  createField(): Array<FieldItem> {
+  createField(): Array<Square> {
     const letters = ['0', 'A', 'B', 'C', 'D', 'E'];
     const numbers = ['0', '1', '2', '3', '4', '5'];
-    let newField = [];
 
-    newField = numbers.map((num) => {
+    const newField = numbers.map((num) => {
       const row = letters.map((letter) => {
         return {
           x: letter,
           y: num,
           content: '',
-          ship: false,
-          shot: false,
+          isContainShip: false,
+          isContainShot: false,
         };
       });
       return row;
@@ -141,12 +138,12 @@ export class Game extends Component<IProps, IState> {
         nextState.player2.numberOfShips === 0)
     ) {
       nextState.isWin = true;
-      nextState.shotResult = 'Победил!';
+      nextState.actionInfo = 'Победил!';
     }
 
     // отключаем отображение сообщения о расстановке кораблей
     if (nextState.isReadyFields && !nextState.isStarted)
-      nextState.shotResult = '';
+      nextState.actionInfo = '';
 
     return true;
   }
@@ -154,7 +151,7 @@ export class Game extends Component<IProps, IState> {
   /**
    * меняет игрока
    */
-  nextPlayer() {
+  switchPlayer() {
     // если оба поля игроков готовы, сообщаем об этом
     // либо меняем игрока, дав возможность ходить другому
     this.state.player1.isInstalledShips && this.state.player2.isInstalledShips
@@ -184,7 +181,7 @@ export class Game extends Component<IProps, IState> {
       isReadyPlayer: false,
       isTurnOfPlayer1: !this.state.isTurnOfPlayer1,
       isMakeShot: false,
-      shotResult: '',
+      actionInfo: '',
     });
   }
 
@@ -207,7 +204,7 @@ export class Game extends Component<IProps, IState> {
         square.y === this.state.lastShot?.y
       ) {
         // если на выбранной клетке стоит корабль
-        if (square.ship) {
+        if (square.isContainShip) {
           square.content = 'X';
           player.numberOfShips--;
           result = 'Попал!';
@@ -224,14 +221,14 @@ export class Game extends Component<IProps, IState> {
     if (this.state.isTurnOfPlayer1) {
       this.setState({
         player2: player,
-        shotResult: result,
+        actionInfo: result,
         isFail,
         isMakeShot,
       });
     } else {
       this.setState({
         player1: player,
-        shotResult: result,
+        actionInfo: result,
         isFail,
         isMakeShot,
       });
@@ -257,7 +254,7 @@ export class Game extends Component<IProps, IState> {
       if (!this.state.isMakeShot) {
         player.field.map((square) => {
           if (square.x === x && square.y === y && !square.content) {
-            square.shot = !square.shot;
+            square.isContainShot = !square.isContainShot;
             shooting = true;
             lastShot = { x, y };
           }
@@ -266,7 +263,7 @@ export class Game extends Component<IProps, IState> {
       } else if (this.state.lastShot?.x === x && this.state.lastShot?.y === y) {
         player.field.map((square) => {
           if (square.x === x && square.y === y && !square.content)
-            square.shot = !square.shot;
+            square.isContainShot = !square.isContainShot;
           return square;
         });
         shooting = false;
@@ -289,15 +286,15 @@ export class Game extends Component<IProps, IState> {
       player.field.map((square) => {
         if (square.x === x && square.y === y) {
           // находим выбранную клетку и устанавливаем в ней корабль или убираем, если корабль там уже стоит
-          if (player.numberOfShips === 8 && square.ship) {
-            square.ship = false;
+          if (player.numberOfShips === 8 && square.isContainShip) {
+            square.isContainShip = false;
             player.numberOfShips--;
             player.isInstalledShips = false;
           } else if (player.numberOfShips < 8) {
-            player.numberOfShips = square.ship
+            player.numberOfShips = square.isContainShip
               ? player.numberOfShips - 1
               : player.numberOfShips + 1;
-            square.ship = !square.ship;
+            square.isContainShip = !square.isContainShip;
           }
         }
         return square;
@@ -320,18 +317,18 @@ export class Game extends Component<IProps, IState> {
           <Button text="Новая игра" onClick={this.newGame} />
         </div>
         {/* Отображение информации о текущем игроке */}
-        <Settings
+        <UserAction
           playerName={
             this.state.isTurnOfPlayer1
               ? this.state.player1.name
               : this.state.player2.name
           }
-          shotResult={this.state.shotResult}
+          actionInfo={this.state.actionInfo}
         >
           {!this.state.isReadyFields && (
             <Button
-              text={'Подтвердить'}
-              onClick={() => this.nextPlayer()}
+              text="Подтвердить"
+              onClick={() => this.switchPlayer()}
               status={
                 this.state.isTurnOfPlayer1
                   ? !this.state.player1.isInstalledShips
@@ -341,7 +338,7 @@ export class Game extends Component<IProps, IState> {
           )}
           {this.state.isReadyFields && !this.state.isReadyPlayer && (
             <Button
-              text={'Начать ход'}
+              text="Начать ход"
               onClick={() => this.startGame()}
               status={!this.state.player1.isInstalledShips}
             />
@@ -372,7 +369,7 @@ export class Game extends Component<IProps, IState> {
           ) : (
             ''
           )}
-        </Settings>
+        </UserAction>
         <div className="game__field">
           {!this.state.isReadyFields ? (
             <Field
